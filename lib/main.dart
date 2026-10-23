@@ -1,11 +1,15 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'repositories/animal_repository.dart';
 import 'repositories/adopter_repository.dart';
-import 'state/animal_notifier.dart';
+import 'repositories/adoption_request_repository.dart';
+import 'repositories/animal_repository.dart';
+import 'repositories/medical_card_repository.dart';
+
 import 'state/adopter_notifier.dart';
+import 'state/adoption_request_notifier.dart';
+import 'state/animal_notifier.dart';
+
 import 'router.dart';
 
 void main() {
@@ -20,13 +24,32 @@ void main() {
         Provider<AdopterRepository>(
           create: (_) => InMemoryAdopterRepository(),
         ),
-        ChangeNotifierProvider(
-          create: (context) =>
-              AnimalNotifier(context.read<AnimalRepository>())..load(),
+        Provider<AdoptionRequestRepository>(
+          create: (_) =>
+              InMemoryAdoptionRequestRepository(),
+        ),
+        Provider<MedicalCardRepository>(
+          create: (_) =>
+              InMemoryMedicalCardRepository(),
         ),
         ChangeNotifierProvider(
           create: (context) =>
-              AdopterNotifier(context.read<AdopterRepository>())..load(),
+              AnimalNotifier(
+                context.read<AnimalRepository>(),
+              )..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              AdopterNotifier(
+                context.read<AdopterRepository>(),
+              )..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              AdoptionRequestNotifier(
+                context.read<AdoptionRequestRepository>(),
+                context.read<AnimalRepository>(),
+              )..load(),
         ),
       ],
       child: const ShelterApp(),
@@ -51,7 +74,8 @@ class ShelterApp extends StatelessWidget {
           seedColor: deepPink,
           surface: const Color(0xFFFFFAFC),
         ),
-        scaffoldBackgroundColor: const Color(0xFFFFF7FA),
+        scaffoldBackgroundColor:
+            const Color(0xFFFFF7FA),
         appBarTheme: const AppBarTheme(
           backgroundColor: pink,
           foregroundColor: Color(0xFF30232A),
