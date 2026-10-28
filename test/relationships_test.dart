@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:animal_shelter/models/adoption_request.dart';
 import 'package:animal_shelter/models/medical_card.dart';
 
 import 'package:animal_shelter/repositories/adoption_request_repository.dart';

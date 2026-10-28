@@ -1,11 +1,17 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/api_exceptions.dart';
 import '../models/animal.dart';
 import '../models/page_result.dart';
 import '../models/shelter_query.dart';
 import '../repositories/animal_repository.dart';
 
-enum LoadStatus { idle, loading, success, error }
+enum LoadStatus {
+  idle,
+  loading,
+  success,
+  error,
+}
 
 class AnimalNotifier extends ChangeNotifier {
   final AnimalRepository repository;
@@ -14,7 +20,7 @@ class AnimalNotifier extends ChangeNotifier {
 
   ShelterQuery _query = const ShelterQuery();
 
-  PageResult<Animal> _result = PageResult<Animal>(
+  PageResult<Animal> _result = const PageResult<Animal>(
     items: [],
     page: 1,
     size: 10,
@@ -23,12 +29,14 @@ class AnimalNotifier extends ChangeNotifier {
 
   LoadStatus _status = LoadStatus.idle;
   String? _error;
+
   final Set<int> _selected = {};
 
   ShelterQuery get query => _query;
   PageResult<Animal> get result => _result;
   LoadStatus get status => _status;
   String? get error => _error;
+
   Set<int> get selected => Set.unmodifiable(_selected);
 
   Future<void> load() async {
@@ -39,6 +47,8 @@ class AnimalNotifier extends ChangeNotifier {
     try {
       _result = await repository.find(_query);
       _status = LoadStatus.success;
+    } on RequestCancelledException {
+      return;
     } catch (error) {
       _error = 'Не удалось загрузить питомцев: $error';
       _status = LoadStatus.error;
@@ -84,8 +94,6 @@ class AnimalNotifier extends ChangeNotifier {
     await load();
   }
 
-  /// Создаёт питомца или обновляет существующую запись.
-  /// Возвращает сохранённый объект с его ID.
   Future<Animal> save(Animal animal) async {
     final Animal savedAnimal;
 
@@ -96,7 +104,6 @@ class AnimalNotifier extends ChangeNotifier {
     }
 
     await load();
-
     return savedAnimal;
   }
 }

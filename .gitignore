@@ -10,3 +10,6 @@ build/
 *.iml
 .DS_Store
 Thumbs.db
+
+# Node.js backend dependencies
+backend/node_modules/
