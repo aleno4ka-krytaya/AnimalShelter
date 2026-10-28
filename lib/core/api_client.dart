@@ -2,28 +2,29 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api_exceptions.dart';
+import 'auth_session.dart';
 import 'config.dart';
 
 Dio buildDio({
   String? Function()? tokenProvider,
   HttpClientAdapter? adapter,
+  AuthSession? authSession,
 }) {
   final dio = Dio(
     BaseOptions(
       baseUrl: apiBaseUrl.endsWith('/')
           ? apiBaseUrl
           : '$apiBaseUrl/',
-
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
-
       headers: const {
         'Content-Type': 'application/json',
       },
 
+      // Ответы 4xx и 5xx должны обрабатываться через onError.
       validateStatus: (status) =>
-          status != null && status < 500,
+          status != null && status < 400,
     ),
   );
 
@@ -34,23 +35,8 @@ Dio buildDio({
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        // Параметры для демонстрации ПР4:
-        // ?__delay=1500 и ?__fail=500
-        final browserFlags = Uri.base.queryParameters;
-
-        for (final key in const [
-          '__delay',
-          '__fail',
-        ]) {
-          if (browserFlags.containsKey(key)) {
-            options.queryParameters.putIfAbsent(
-              key,
-              () => browserFlags[key],
-            );
-          }
-        }
-
-        final token = tokenProvider?.call();
+        final token =
+            authSession?.accessToken ?? tokenProvider?.call();
 
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -66,38 +52,63 @@ Dio buildDio({
       },
 
       onResponse: (response, handler) {
-        final status = response.statusCode ?? 0;
-
         if (kDebugMode) {
           debugPrint(
             '[API] ${response.requestOptions.method} '
-            '${response.requestOptions.uri} -> $status',
+            '${response.requestOptions.uri} '
+            '-> ${response.statusCode}',
           );
-        }
-
-        if (status >= 400) {
-          handler.reject(
-            DioException(
-              requestOptions: response.requestOptions,
-              response: response,
-              type: DioExceptionType.badResponse,
-              error: mapHttpError(status, response.data),
-            ),
-            true,
-          );
-          return;
         }
 
         handler.next(response);
       },
 
-      onError: (error, handler) {
+      onError: (error, handler) async {
+        final status = error.response?.statusCode;
+        final path = error.requestOptions.path.toLowerCase();
+
+        final isAuthEndpoint =
+            path.contains('/auth/') ||
+            path.startsWith('auth/');
+
+        final alreadyRetried =
+            error.requestOptions.extra['authRetried'] == true;
+
         if (kDebugMode) {
           debugPrint(
             '[API] ${error.requestOptions.method} '
-            '${error.requestOptions.uri} -> '
-            '${error.response?.statusCode ?? error.type}',
+            '${error.requestOptions.uri} '
+            '-> ${status ?? error.type}',
           );
+        }
+
+        // Обновляем токен при 401, но не запускаем повторное
+        // обновление для login, register и refresh.
+        if (status == 401 &&
+            !isAuthEndpoint &&
+            !alreadyRetried &&
+            authSession != null) {
+          try {
+            final newToken =
+                await authSession.refreshAccessToken();
+
+            if (newToken == null || newToken.isEmpty) {
+              throw const UnauthorizedException(
+                'Не удалось обновить токен.',
+              );
+            }
+
+            final options = error.requestOptions;
+            options.headers['Authorization'] = 'Bearer $newToken';
+            options.extra['authRetried'] = true;
+
+            final response = await dio.fetch<dynamic>(options);
+
+            handler.resolve(response);
+            return;
+          } catch (_) {
+            await authSession.expiredHandler?.call();
+          }
         }
 
         handler.next(error);
@@ -108,10 +119,7 @@ Dio buildDio({
   return dio;
 }
 
-ApiException mapHttpError(
-  int status,
-  dynamic data,
-) {
+ApiException mapHttpError(int status, dynamic data) {
   final payload = data is Map
       ? data
       : const <dynamic, dynamic>{};
@@ -122,19 +130,14 @@ ApiException mapHttpError(
   switch (status) {
     case 400:
       return UnexpectedApiException(message);
-
     case 401:
       return UnauthorizedException(message);
-
     case 403:
       return ForbiddenException(message);
-
     case 404:
       return NotFoundException(message);
-
     case 409:
       return ConflictException(message);
-
     case 422:
       final rawErrors = payload['errors'];
       final errors = <String, String>{};
@@ -149,7 +152,6 @@ ApiException mapHttpError(
         message,
         errors: errors,
       );
-
     default:
       if (status >= 500) {
         return ServerException(message);
