@@ -151,14 +151,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             satisfied ? Icons.check_circle : Icons.circle_outlined,
-            color: satisfied ? Colors.green : Colors.grey,
             size: 19,
           ),
           const SizedBox(width: 9),
-          Text(text),
+          Expanded(
+            child: Text(text),
+          ),
         ],
       ),
     );
