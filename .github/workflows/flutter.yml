@@ -31,8 +31,10 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      - name: Build web release
-        run: flutter build web --release
+       - name: Build web release
+        run: |
+          flutter build web --release --base-href /AnimalShelter/
+          cp build/web/index.html build/web/404.html
       - name: Upload web build
         uses: actions/upload-pages-artifact@v3
         with:
