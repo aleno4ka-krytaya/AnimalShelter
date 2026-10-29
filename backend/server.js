@@ -14,11 +14,13 @@ function readArgument(name, fallback) {
     : fallback;
 }
 
-const PORT = Number(readArgument('--port', '8080'));
-const ALLOWED_ORIGIN = readArgument(
-  '--origin',
-  'http://localhost:5555',
+const PORT = Number(
+  process.env.PORT || readArgument('--port', '10000'),
 );
+
+const ALLOWED_ORIGIN =
+  process.env.ALLOWED_ORIGIN ||
+  readArgument('--origin', 'http://localhost:5555');
 
 app.use(cors({
   origin: ALLOWED_ORIGIN,
@@ -996,7 +998,7 @@ app.use((error, req, res, next) => {
 
 seedData();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(
     `API «Лапки и дом»: http://localhost:${PORT}/api`,
   );
