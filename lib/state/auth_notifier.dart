@@ -41,8 +41,7 @@ class AuthNotifier extends ChangeNotifier {
 
   String? get accessToken => session.accessToken;
 
-  bool get isAuthenticated =>
-      _user != null && session.accessToken != null;
+  bool get isAuthenticated => _user != null && session.accessToken != null;
 
   bool has(UserRole minimumRole) {
     return _user?.role.hasAtLeast(minimumRole) ?? false;
@@ -70,8 +69,7 @@ class AuthNotifier extends ChangeNotifier {
       startedAt = DateTime.tryParse(startedAtValue);
 
       if (startedAt != null &&
-          DateTime.now().difference(startedAt) >=
-              maxSessionDuration) {
+          DateTime.now().difference(startedAt) >= maxSessionDuration) {
         await _clearLocalSession();
         return;
       }

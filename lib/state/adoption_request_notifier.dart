@@ -17,17 +17,14 @@ class AdoptionRequestNotifier extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  List<AdoptionRequest> get items =>
-      List.unmodifiable(_items);
+  List<AdoptionRequest> get items => List.unmodifiable(_items);
 
   bool get isLoading => _isLoading;
 
   String? get error => _error;
 
   List<AdoptionRequest> forAnimal(int animalId) {
-    final result = _items
-        .where((item) => item.animalId == animalId)
-        .toList();
+    final result = _items.where((item) => item.animalId == animalId).toList();
 
     result.sort(
       (a, b) => b.createdAt.compareTo(a.createdAt),
@@ -37,9 +34,7 @@ class AdoptionRequestNotifier extends ChangeNotifier {
   }
 
   List<AdoptionRequest> forAdopter(int adopterId) {
-    final result = _items
-        .where((item) => item.adopterId == adopterId)
-        .toList();
+    final result = _items.where((item) => item.adopterId == adopterId).toList();
 
     result.sort(
       (a, b) => b.createdAt.compareTo(a.createdAt),
@@ -114,9 +109,8 @@ class AdoptionRequestNotifier extends ChangeNotifier {
 
     final related = forAdopter(adopterId);
 
-    final affectedAnimalIds = related
-        .map((request) => request.animalId)
-        .toSet();
+    final affectedAnimalIds =
+        related.map((request) => request.animalId).toSet();
 
     for (final request in related) {
       await repository.delete(request.id);
@@ -134,24 +128,19 @@ class AdoptionRequestNotifier extends ChangeNotifier {
   ) async {
     _items = await repository.findAll();
 
-    final animal =
-        await animalRepository.findById(animalId);
+    final animal = await animalRepository.findById(animalId);
 
     if (animal == null) return;
 
     final hasApprovedRequest = _items.any(
-      (request) =>
-          request.animalId == animalId &&
-          request.status == 'Одобрена',
+      (request) => request.animalId == animalId && request.status == 'Одобрена',
     );
 
-    if (hasApprovedRequest &&
-        animal.status != 'Пристроен') {
+    if (hasApprovedRequest && animal.status != 'Пристроен') {
       await animalRepository.update(
         animal.copyWith(status: 'Пристроен'),
       );
-    } else if (!hasApprovedRequest &&
-        animal.status == 'Пристроен') {
+    } else if (!hasApprovedRequest && animal.status == 'Пристроен') {
       await animalRepository.update(
         animal.copyWith(status: 'Ищет дом'),
       );

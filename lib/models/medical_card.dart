@@ -21,12 +21,9 @@ class MedicalCard {
   ) {
     return MedicalCard(
       animalId: (json['animalId'] as num?)?.toInt() ?? 0,
-      passportNumber:
-          (json['passportNumber'] ?? '').toString(),
-      microchipNumber:
-          (json['microchipNumber'] ?? '').toString(),
-      vaccinationNotes:
-          (json['vaccinationNotes'] ?? '').toString(),
+      passportNumber: (json['passportNumber'] ?? '').toString(),
+      microchipNumber: (json['microchipNumber'] ?? '').toString(),
+      vaccinationNotes: (json['vaccinationNotes'] ?? '').toString(),
       allergies: (json['allergies'] ?? '').toString(),
     );
   }
@@ -49,12 +46,9 @@ class MedicalCard {
   }) {
     return MedicalCard(
       animalId: animalId,
-      passportNumber:
-          passportNumber ?? this.passportNumber,
-      microchipNumber:
-          microchipNumber ?? this.microchipNumber,
-      vaccinationNotes:
-          vaccinationNotes ?? this.vaccinationNotes,
+      passportNumber: passportNumber ?? this.passportNumber,
+      microchipNumber: microchipNumber ?? this.microchipNumber,
+      vaccinationNotes: vaccinationNotes ?? this.vaccinationNotes,
       allergies: allergies ?? this.allergies,
     );
   }

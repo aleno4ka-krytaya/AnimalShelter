@@ -1,169 +1,128 @@
 import 'package:go_router/go_router.dart';
 
 import 'models/app_user.dart';
-import 'state/auth_notifier.dart';
-
-import 'screens/home_screen.dart';
-import 'screens/animal_list_screen.dart';
-import 'screens/adopter_list_screen.dart';
-import 'screens/animal_detail_screen.dart';
-import 'screens/medical_card_screen.dart';
-import 'screens/adopter_detail_screen.dart';
-import 'screens/not_found_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
-import 'screens/forbidden_screen.dart';
 import 'screens/admin_users_screen.dart';
+import 'screens/adopter_detail_screen.dart';
+import 'screens/adopter_list_screen.dart';
+import 'screens/adoption_request_form_screen.dart';
+import 'screens/animal_detail_screen.dart';
+import 'screens/animal_list_screen.dart';
+import 'screens/forbidden_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/medical_card_screen.dart';
+import 'screens/register_screen.dart';
+import 'state/auth_notifier.dart';
 
 GoRouter createRouter(AuthNotifier auth) {
   return GoRouter(
-    // При первом открытии переходим на авторизацию.
     initialLocation: '/login',
-
-    // Обновляем маршруты при входе и выходе пользователя.
     refreshListenable: auth,
-
     redirect: (context, state) {
       final path = state.uri.path;
+      final loggedIn = auth.isAuthenticated;
 
-      final isLogin = path == '/login';
-      final isRegister = path == '/register';
-      final isPublic = isLogin || isRegister;
+      final isPublic = path == '/login' || path == '/register';
 
-      // Без авторизации разрешены только вход и регистрация.
-      if (!auth.isAuthenticated && !isPublic) {
-        final destination = state.uri.toString();
-
-        return '/login?from=${Uri.encodeComponent(destination)}';
+      if (!loggedIn && !isPublic) {
+        final from = Uri.encodeComponent(state.uri.toString());
+        return '/login?from=$from';
       }
 
-      // После входа не оставляем пользователя на форме входа.
-      if (auth.isAuthenticated && isPublic) {
+      if (loggedIn && isPublic) {
         final from = state.uri.queryParameters['from'];
 
         if (from != null &&
             from.startsWith('/') &&
-            !from.startsWith('//')) {
+            !from.startsWith('//') &&
+            !from.startsWith('/login') &&
+            !from.startsWith('/register')) {
           return from;
         }
 
         return '/';
       }
 
-      // Разделы сотрудников приюта.
-      final staffOnly =
-          path == '/adopters' ||
+      final requiresStaff = path == '/adopters' ||
           path.startsWith('/adopters/') ||
           path.contains('/medical') ||
           path.startsWith('/adoption-requests');
 
-      if (staffOnly && !auth.has(UserRole.staff)) {
+      if (requiresStaff && !auth.has(UserRole.staff)) {
         return '/forbidden';
       }
 
-      // Управление пользователями — только администратор.
-      if (path == '/admin/users' &&
-          !auth.has(UserRole.admin)) {
+      if (path == '/admin/users' && !auth.has(UserRole.admin)) {
         return '/forbidden';
       }
 
       return null;
     },
-
-    errorBuilder: (context, state) {
-      return NotFoundScreen(
-        location: state.uri.toString(),
-      );
-    },
-
     routes: [
       GoRoute(
         path: '/login',
-        builder: (context, state) {
-          return LoginScreen(
-            from: state.uri.queryParameters['from'],
-            registered:
-                state.uri.queryParameters['registered'] == 'true',
-          );
-        },
+        builder: (context, state) => const LoginScreen(),
       ),
-
       GoRoute(
         path: '/register',
-        builder: (context, state) {
-          return const RegisterScreen();
-        },
+        builder: (context, state) => const RegisterScreen(),
       ),
-
       GoRoute(
         path: '/forbidden',
-        builder: (context, state) {
-          return const ForbiddenScreen();
-        },
+        builder: (context, state) => const ForbiddenScreen(),
       ),
-
       GoRoute(
         path: '/',
-        builder: (context, state) {
-          return const HomeScreen();
-        },
+        builder: (context, state) => const HomeScreen(),
       ),
-
       GoRoute(
         path: '/animals',
-        builder: (context, state) {
-          return AnimalListScreen(uri: state.uri);
-        },
+        builder: (context, state) => AnimalListScreen(uri: state.uri),
       ),
-
-      GoRoute(
-        path: '/animals/:id',
-        builder: (context, state) {
-          return AnimalDetailScreen(
-            id: int.tryParse(
-                  state.pathParameters['id'] ?? '',
-                ) ??
-                0,
-          );
-        },
-      ),
-
       GoRoute(
         path: '/animals/:id/medical',
         builder: (context, state) {
-          return MedicalCardScreen(
-            animalId: int.tryParse(
-                  state.pathParameters['id'] ?? '',
-                ) ??
-                0,
-          );
+          final id = int.tryParse(
+                state.pathParameters['id'] ?? '',
+              ) ??
+              0;
+
+          return MedicalCardScreen(animalId: id);
         },
       ),
+      GoRoute(
+        path: '/animals/:id',
+        builder: (context, state) {
+          final id = int.tryParse(
+                state.pathParameters['id'] ?? '',
+              ) ??
+              0;
 
+          return AnimalDetailScreen(id: id);
+        },
+      ),
       GoRoute(
         path: '/adopters',
-        builder: (context, state) {
-          return AdopterListScreen(uri: state.uri);
-        },
+        builder: (context, state) => AdopterListScreen(uri: state.uri),
       ),
-
       GoRoute(
         path: '/adopters/:id',
         builder: (context, state) {
-          return AdopterDetailScreen(
-            id: int.tryParse(
-                  state.pathParameters['id'] ?? '',
-                ) ??
-                0,
-          );
+          final id = int.tryParse(
+                state.pathParameters['id'] ?? '',
+              ) ??
+              0;
+
+          return AdopterDetailScreen(id: id);
         },
       ),
-
+      GoRoute(
+        path: '/adoption-requests/new',
+        builder: (context, state) => const AdoptionRequestFormScreen(),
+      ),
       GoRoute(
         path: '/admin/users',
-        builder: (context, state) {
-          return const AdminUsersScreen();
-        },
+        builder: (context, state) => const AdminUsersScreen(),
       ),
     ],
   );

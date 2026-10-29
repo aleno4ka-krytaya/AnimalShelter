@@ -17,12 +17,10 @@ class MedicalCardScreen extends StatefulWidget {
   });
 
   @override
-  State<MedicalCardScreen> createState() =>
-      _MedicalCardScreenState();
+  State<MedicalCardScreen> createState() => _MedicalCardScreenState();
 }
 
-class _MedicalCardScreenState
-    extends State<MedicalCardScreen> {
+class _MedicalCardScreenState extends State<MedicalCardScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passport = TextEditingController();
   final _microchip = TextEditingController();
@@ -41,19 +39,22 @@ class _MedicalCardScreenState
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
+    final animalRepository = context.read<AnimalRepository>();
+    final medicalCardRepository = context.read<MedicalCardRepository>();
 
     try {
-      final animal = await context
-          .read<AnimalRepository>()
-          .findById(widget.animalId);
+      final animal = await animalRepository.findById(widget.animalId);
+
+      if (!mounted) return;
 
       if (animal == null) {
-        if (!mounted) return;
-
         setState(() {
           _animal = null;
           _error = 'Питомец не найден.';
@@ -62,9 +63,7 @@ class _MedicalCardScreenState
         return;
       }
 
-      final card = await context
-          .read<MedicalCardRepository>()
-          .findByAnimalId(widget.animalId);
+      final card = await medicalCardRepository.findByAnimalId(widget.animalId);
 
       if (!mounted) return;
 
@@ -95,30 +94,28 @@ class _MedicalCardScreenState
   }
 
   String _shown(String value) {
-    return value.trim().isEmpty
-        ? 'Не заполнено'
-        : value.trim();
+    return value.trim().isEmpty ? 'Не заполнено' : value.trim();
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate() ||
-        _saving ||
-        _animal == null) {
+    if (!_formKey.currentState!.validate() || _saving || _animal == null) {
       return;
     }
 
     setState(() => _saving = true);
 
     try {
-      await context.read<MedicalCardRepository>().save(
-            MedicalCard(
-              animalId: widget.animalId,
-              passportNumber: _passport.text.trim(),
-              microchipNumber: _microchip.text.trim(),
-              vaccinationNotes: _vaccinations.text.trim(),
-              allergies: _allergies.text.trim(),
-            ),
-          );
+      final repository = context.read<MedicalCardRepository>();
+
+      await repository.save(
+        MedicalCard(
+          animalId: widget.animalId,
+          passportNumber: _passport.text.trim(),
+          microchipNumber: _microchip.text.trim(),
+          vaccinationNotes: _vaccinations.text.trim(),
+          allergies: _allergies.text.trim(),
+        ),
+      );
 
       if (!mounted) return;
 
@@ -134,9 +131,7 @@ class _MedicalCardScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Не удалось сохранить карточку: $error',
-          ),
+          content: Text('Не удалось сохранить карточку: $error'),
         ),
       );
     } finally {
@@ -163,12 +158,9 @@ class _MedicalCardScreenState
                   : SingleChildScrollView(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 760,
-                          ),
+                          constraints: const BoxConstraints(maxWidth: 760),
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.stretch,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Card(
                                 child: Padding(
@@ -183,8 +175,7 @@ class _MedicalCardScreenState
                                         children: [
                                           const CircleAvatar(
                                             radius: 28,
-                                            backgroundColor:
-                                                Color(0xFFF6DCE7),
+                                            backgroundColor: Color(0xFFF6DCE7),
                                             child: Icon(
                                               Icons.medical_services_outlined,
                                               color: Color(0xFFB85C83),
@@ -201,8 +192,7 @@ class _MedicalCardScreenState
                                                   _animal!.name,
                                                   style: const TextStyle(
                                                     fontSize: 22,
-                                                    fontWeight:
-                                                        FontWeight.bold,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
                                                 const SizedBox(height: 4),
@@ -294,14 +284,12 @@ class _MedicalCardScreenState
                                     ),
                                     const SizedBox(height: 16),
                                     FilledButton.icon(
-                                      onPressed:
-                                          _saving ? null : _save,
+                                      onPressed: _saving ? null : _save,
                                       icon: _saving
                                           ? const SizedBox(
                                               width: 18,
                                               height: 18,
-                                              child:
-                                                  CircularProgressIndicator(
+                                              child: CircularProgressIndicator(
                                                 strokeWidth: 2,
                                               ),
                                             )

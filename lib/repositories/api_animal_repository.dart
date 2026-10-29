@@ -20,8 +20,7 @@ class ApiAnimalRepository implements AnimalRepository {
     final params = <String, dynamic>{
       'page': query.page,
       'size': query.size,
-      'sort':
-          '${query.sortField},'
+      'sort': '${query.sortField},'
           '${query.sortAscending ? 'asc' : 'desc'}',
       'includeDeleted': query.includeDeleted,
     };

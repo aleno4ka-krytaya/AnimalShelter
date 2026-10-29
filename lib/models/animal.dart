@@ -73,9 +73,7 @@ class Animal {
       sex: sex ?? this.sex,
       status: status ?? this.status,
       description: description ?? this.description,
-      deletedAt: clearDeletedAt
-          ? null
-          : (deletedAt ?? this.deletedAt),
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     );
   }
 }

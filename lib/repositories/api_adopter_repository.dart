@@ -18,8 +18,7 @@ class ApiAdopterRepository implements AdopterRepository {
     final params = <String, dynamic>{
       'page': query.page,
       'size': query.size,
-      'sort':
-          '${query.sortField == 'city' ? 'city' : 'fullName'},'
+      'sort': '${query.sortField == 'city' ? 'city' : 'fullName'},'
           '${query.sortAscending ? 'asc' : 'desc'}',
       'includeDeleted': query.includeDeleted,
     };

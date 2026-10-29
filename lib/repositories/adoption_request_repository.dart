@@ -16,8 +16,7 @@ abstract interface class AdoptionRequestRepository {
   Future<void> delete(int id);
 }
 
-class InMemoryAdoptionRequestRepository
-    implements AdoptionRequestRepository {
+class InMemoryAdoptionRequestRepository implements AdoptionRequestRepository {
   final List<AdoptionRequest> _items = [
     AdoptionRequest(
       id: 1,
@@ -54,8 +53,7 @@ class InMemoryAdoptionRequestRepository
   int _nextId = 5;
 
   @override
-  Future<List<AdoptionRequest>> findAll() async =>
-      List.unmodifiable(_items);
+  Future<List<AdoptionRequest>> findAll() async => List.unmodifiable(_items);
 
   @override
   Future<AdoptionRequest> create({

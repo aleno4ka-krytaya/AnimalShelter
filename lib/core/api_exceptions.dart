@@ -9,15 +9,13 @@ sealed class ApiException implements Exception {
 
 class NetworkException extends ApiException {
   const NetworkException([
-    super.message =
-        'Сервер недоступен. Проверьте соединение и настройки CORS.',
+    super.message = 'Сервер недоступен. Проверьте соединение и настройки CORS.',
   ]);
 }
 
 class RequestTimeoutException extends ApiException {
   const RequestTimeoutException([
-    super.message =
-        'Сервер слишком долго отвечает. Повторите попытку.',
+    super.message = 'Сервер слишком долго отвечает. Повторите попытку.',
   ]);
 }
 
@@ -35,15 +33,13 @@ class UnauthorizedException extends ApiException {
 
 class ForbiddenException extends ApiException {
   const ForbiddenException([
-    super.message =
-        'Недостаточно прав для выполнения операции.',
+    super.message = 'Недостаточно прав для выполнения операции.',
   ]);
 }
 
 class ConflictException extends ApiException {
   const ConflictException([
-    super.message =
-        'Операция конфликтует с существующими данными.',
+    super.message = 'Операция конфликтует с существующими данными.',
   ]);
 }
 
@@ -63,8 +59,7 @@ class ServerException extends ApiException {
 }
 
 class RequestCancelledException extends ApiException {
-  const RequestCancelledException()
-      : super('Запрос отменён.');
+  const RequestCancelledException() : super('Запрос отменён.');
 }
 
 class UnexpectedApiException extends ApiException {

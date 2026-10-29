@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/api_client.dart';
 import 'core/auth_session.dart';
 
-
 import 'repositories/auth_api.dart';
 import 'repositories/animal_repository.dart';
 import 'repositories/adopter_repository.dart';
@@ -151,20 +150,15 @@ class ShelterApp extends StatelessWidget {
 
       theme: ThemeData(
         useMaterial3: true,
-
         colorScheme: ColorScheme.fromSeed(
           seedColor: deepPink,
           surface: const Color(0xFFFFFAFC),
         ),
-
-        scaffoldBackgroundColor:
-            const Color(0xFFFFF7FA),
-
+        scaffoldBackgroundColor: const Color(0xFFFFF7FA),
         appBarTheme: const AppBarTheme(
           backgroundColor: pink,
           foregroundColor: darkText,
         ),
-
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 1,
@@ -172,7 +166,6 @@ class ShelterApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
           ),
         ),
-
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,

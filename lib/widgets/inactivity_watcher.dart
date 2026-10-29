@@ -20,8 +20,7 @@ class InactivityWatcher extends StatefulWidget {
   });
 
   @override
-  State<InactivityWatcher> createState() =>
-      _InactivityWatcherState();
+  State<InactivityWatcher> createState() => _InactivityWatcherState();
 }
 
 class _InactivityWatcherState extends State<InactivityWatcher> {
@@ -64,13 +63,10 @@ class _InactivityWatcherState extends State<InactivityWatcher> {
       return;
     }
 
-    final warningDelay =
-        widget.timeout - widget.warningBefore;
+    final warningDelay = widget.timeout - widget.warningBefore;
 
     _warningTimer = Timer(
-      warningDelay.isNegative
-          ? Duration.zero
-          : warningDelay,
+      warningDelay.isNegative ? Duration.zero : warningDelay,
       _showWarning,
     );
 

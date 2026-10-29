@@ -24,12 +24,10 @@ class AnimalDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<AnimalDetailScreen> createState() =>
-      _AnimalDetailScreenState();
+  State<AnimalDetailScreen> createState() => _AnimalDetailScreenState();
 }
 
-class _AnimalDetailScreenState
-    extends State<AnimalDetailScreen> {
+class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final name = TextEditingController();
@@ -58,9 +56,8 @@ class _AnimalDetailScreenState
     if (!loaded) {
       loaded = true;
 
-      adoptersFuture = context
-          .read<AdopterRepository>()
-          .find(const ShelterQuery(size: 100));
+      adoptersFuture =
+          context.read<AdopterRepository>().find(const ShelterQuery(size: 100));
 
       if (widget.id != 0) {
         _load();
@@ -69,11 +66,12 @@ class _AnimalDetailScreenState
   }
 
   Future<void> _load() async {
-    final animal = await context
-        .read<AnimalRepository>()
-        .findById(widget.id);
+    final animalRepository = context.read<AnimalRepository>();
+    final medicalCardRepository = context.read<MedicalCardRepository>();
 
-    if (animal == null || !mounted) return;
+    final animal = await animalRepository.findById(widget.id);
+
+    if (!mounted || animal == null) return;
 
     name.text = animal.name;
     breed.text = animal.breed;
@@ -86,9 +84,7 @@ class _AnimalDetailScreenState
       status = animal.status;
     });
 
-    final card = await context
-        .read<MedicalCardRepository>()
-        .findByAnimalId(widget.id);
+    final card = await medicalCardRepository.findByAnimalId(widget.id);
 
     if (!mounted) return;
 
@@ -130,28 +126,28 @@ class _AnimalDetailScreenState
         description: description.text.trim(),
       );
 
-      final savedAnimal = await context
-          .read<AnimalNotifier>()
-          .save(animal);
+      final animalNotifier = context.read<AnimalNotifier>();
+      final medicalCardRepository = context.read<MedicalCardRepository>();
 
-      await context.read<MedicalCardRepository>().save(
-            MedicalCard(
-              animalId: savedAnimal.id,
-              passportNumber: passportNumber.text.trim(),
-              microchipNumber: microchipNumber.text.trim(),
-              vaccinationNotes:
-                  vaccinationNotes.text.trim(),
-              allergies: allergies.text.trim(),
-            ),
-          );
+      final savedAnimal = await animalNotifier.save(animal);
+
+      if (!mounted) return;
+
+      await medicalCardRepository.save(
+        MedicalCard(
+          animalId: savedAnimal.id,
+          passportNumber: passportNumber.text.trim(),
+          microchipNumber: microchipNumber.text.trim(),
+          vaccinationNotes: vaccinationNotes.text.trim(),
+          allergies: allergies.text.trim(),
+        ),
+      );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Данные питомца и веткарточка сохранены',
-          ),
+          content: Text('Данные питомца и веткарточка сохранены'),
         ),
       );
 
@@ -177,12 +173,12 @@ class _AnimalDetailScreenState
     if (widget.id == 0 || adopterId == null) return;
 
     try {
-      await context
-          .read<AdoptionRequestNotifier>()
-          .createRequest(
-            animalId: widget.id,
-            adopterId: adopterId,
-          );
+      final requestNotifier = context.read<AdoptionRequestNotifier>();
+
+      await requestNotifier.createRequest(
+        animalId: widget.id,
+        adopterId: adopterId,
+      );
 
       if (!mounted) return;
 
@@ -211,11 +207,37 @@ class _AnimalDetailScreenState
     String newStatus,
   ) async {
     try {
-      await context
-          .read<AdoptionRequestNotifier>()
-          .changeStatus(request, newStatus);
+      final requestNotifier = context.read<AdoptionRequestNotifier>();
+      final animalNotifier = context.read<AnimalNotifier>();
 
-      await context.read<AnimalNotifier>().load();
+      await requestNotifier.changeStatus(request, newStatus);
+
+      if (!mounted) return;
+
+      await animalNotifier.load();
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Bad state: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeRequest(AdoptionRequest request) async {
+    try {
+      final requestNotifier = context.read<AdoptionRequestNotifier>();
+      final animalNotifier = context.read<AnimalNotifier>();
+
+      await requestNotifier.remove(request);
+
+      if (!mounted) return;
+
+      await animalNotifier.load();
     } catch (error) {
       if (!mounted) return;
 
@@ -232,9 +254,7 @@ class _AnimalDetailScreenState
   @override
   Widget build(BuildContext context) {
     return ShelterScaffold(
-      title: widget.id == 0
-          ? 'Новый питомец'
-          : 'Карточка питомца',
+      title: widget.id == 0 ? 'Новый питомец' : 'Карточка питомца',
       child: SingleChildScrollView(
         child: Center(
           child: ConstrainedBox(
@@ -257,14 +277,13 @@ class _AnimalDetailScreenState
                     decoration: const InputDecoration(
                       labelText: 'Имя питомца',
                     ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
-                            ? 'Укажите имя питомца'
-                            : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Укажите имя питомца'
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: species,
+                    initialValue: species,
                     decoration: const InputDecoration(
                       labelText: 'Вид',
                     ),
@@ -295,12 +314,9 @@ class _AnimalDetailScreenState
                       labelText: 'Возраст (лет)',
                     ),
                     validator: (value) {
-                      final parsed =
-                          int.tryParse(value ?? '');
+                      final parsed = int.tryParse(value ?? '');
 
-                      if (parsed == null ||
-                          parsed < 0 ||
-                          parsed > 50) {
+                      if (parsed == null || parsed < 0 || parsed > 50) {
                         return 'Введите возраст от 0 до 50';
                       }
 
@@ -309,7 +325,7 @@ class _AnimalDetailScreenState
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: sex,
+                    initialValue: sex,
                     decoration: const InputDecoration(
                       labelText: 'Пол',
                     ),
@@ -327,7 +343,7 @@ class _AnimalDetailScreenState
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: status,
+                    initialValue: status,
                     decoration: const InputDecoration(
                       labelText: 'Статус',
                     ),
@@ -359,15 +375,10 @@ class _AnimalDetailScreenState
                   if (widget.id != 0) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
-                      onPressed: () => context.go(
-                        '/animals/${widget.id}/medical',
-                      ),
-                      icon: const Icon(
-                        Icons.medical_services_outlined,
-                      ),
-                      label: const Text(
-                        'Открыть ветеринарную карточку',
-                      ),
+                      onPressed: () =>
+                          context.go('/animals/${widget.id}/medical'),
+                      icon: const Icon(Icons.medical_services_outlined),
+                      label: const Text('Открыть ветеринарную карточку'),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -468,14 +479,13 @@ class _AnimalDetailScreenState
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<int>(
-                                value: selectedAdopterId,
+                                initialValue: selectedAdopterId,
                                 decoration: const InputDecoration(
                                   labelText: 'Потенциальный хозяин',
                                 ),
                                 items: adopters
                                     .map(
-                                      (adopter) =>
-                                          DropdownMenuItem<int>(
+                                      (adopter) => DropdownMenuItem<int>(
                                         value: adopter.id,
                                         child: Text(adopter.fullName),
                                       ),
@@ -500,8 +510,7 @@ class _AnimalDetailScreenState
                     const SizedBox(height: 12),
                     Consumer<AdoptionRequestNotifier>(
                       builder: (context, notifier, _) {
-                        final requests =
-                            notifier.forAnimal(widget.id);
+                        final requests = notifier.forAnimal(widget.id);
 
                         if (notifier.isLoading && requests.isEmpty) {
                           return const Center(
@@ -509,8 +518,7 @@ class _AnimalDetailScreenState
                           );
                         }
 
-                        if (notifier.error != null &&
-                            requests.isEmpty) {
+                        if (notifier.error != null && requests.isEmpty) {
                           return Text(notifier.error!);
                         }
 
@@ -522,10 +530,7 @@ class _AnimalDetailScreenState
 
                         return Column(
                           children: requests
-                              .map(
-                                (request) =>
-                                    _requestCard(context, request),
-                              )
+                              .map((request) => _requestCard(request))
                               .toList(),
                         );
                       },
@@ -540,39 +545,14 @@ class _AnimalDetailScreenState
     );
   }
 
-  Future<void> _removeRequest(
-    AdoptionRequest request,
-  ) async {
-    try {
-      await context
-          .read<AdoptionRequestNotifier>()
-          .remove(request);
-
-      await context.read<AnimalNotifier>().load();
-    } catch (error) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error.toString().replaceFirst('Bad state: ', ''),
-          ),
-        ),
-      );
-    }
-  }
-
-  Widget _requestCard(
-    BuildContext context,
-    AdoptionRequest request,
-  ) {
+  Widget _requestCard(AdoptionRequest request) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: FutureBuilder<Adopter?>(
-          future: context
-              .read<AdopterRepository>()
-              .findById(request.adopterId),
+          future: context.read<AdopterRepository>().findById(
+                request.adopterId,
+              ),
           builder: (context, snapshot) {
             final adopter = snapshot.data;
 
@@ -581,8 +561,7 @@ class _AnimalDetailScreenState
               children: [
                 Text(
                   adopter?.fullName ??
-                      (snapshot.connectionState ==
-                              ConnectionState.waiting
+                      (snapshot.connectionState == ConnectionState.waiting
                           ? 'Загрузка хозяина...'
                           : 'Потенциальный хозяин #${request.adopterId}'),
                   style: const TextStyle(

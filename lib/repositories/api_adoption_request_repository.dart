@@ -5,8 +5,7 @@ import '../core/api_exceptions.dart';
 import '../models/adoption_request.dart';
 import 'adoption_request_repository.dart';
 
-class ApiAdoptionRequestRepository
-    implements AdoptionRequestRepository {
+class ApiAdoptionRequestRepository implements AdoptionRequestRepository {
   final Dio dio;
 
   ApiAdoptionRequestRepository(this.dio);

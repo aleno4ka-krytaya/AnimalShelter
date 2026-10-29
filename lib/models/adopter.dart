@@ -25,8 +25,7 @@ class Adopter {
       city: (json['city'] ?? '').toString(),
       phone: (json['phone'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
-      preferredSpecies:
-          (json['preferredSpecies'] ?? 'Не важно').toString(),
+      preferredSpecies: (json['preferredSpecies'] ?? 'Не важно').toString(),
       deletedAt: json['deletedAt'] == null
           ? null
           : DateTime.tryParse(json['deletedAt'].toString()),
@@ -61,11 +60,8 @@ class Adopter {
       city: city ?? this.city,
       phone: phone ?? this.phone,
       email: email ?? this.email,
-      preferredSpecies:
-          preferredSpecies ?? this.preferredSpecies,
-      deletedAt: clearDeletedAt
-          ? null
-          : (deletedAt ?? this.deletedAt),
+      preferredSpecies: preferredSpecies ?? this.preferredSpecies,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     );
   }
 }

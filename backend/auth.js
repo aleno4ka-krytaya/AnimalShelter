@@ -211,8 +211,14 @@ function attachAuthRoutes(app) {
       errors.email = 'Введите корректный адрес электронной почты';
     }
 
+   const fullNamePattern =
+  /^[A-Za-zА-Яа-яЁё]+(?:[-'][A-Za-zА-Яа-яЁё]+)*(?:\s+[A-Za-zА-Яа-яЁё]+(?:[-'][A-Za-zА-Яа-яЁё]+)*)+$/;
+
     if (!fullName) {
-      errors.fullName = 'Введите имя';
+    errors.fullName = 'Введите имя и фамилию.';
+    } else if (!fullNamePattern.test(fullName)) {
+    errors.fullName =
+        'Имя и фамилия должны содержать минимум два слова из букв.';
     }
 
     if (password.length < 8) {

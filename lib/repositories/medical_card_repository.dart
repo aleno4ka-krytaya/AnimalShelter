@@ -8,8 +8,7 @@ abstract interface class MedicalCardRepository {
   Future<void> deleteForAnimal(int animalId);
 }
 
-class InMemoryMedicalCardRepository
-    implements MedicalCardRepository {
+class InMemoryMedicalCardRepository implements MedicalCardRepository {
   // Ключ карты — animalId, поэтому у одного питомца
   // не может быть двух карточек.
   final Map<int, MedicalCard> _cards = {

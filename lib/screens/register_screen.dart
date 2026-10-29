@@ -27,11 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool get _longEnough => _password.text.length >= 8;
 
-  bool get _hasDigit =>
-      RegExp(r'\d').hasMatch(_password.text);
+  bool get _hasDigit => RegExp(r'\d').hasMatch(_password.text);
 
-  bool get _hasSpecial =>
-      RegExp(r'[^a-zA-Z0-9]').hasMatch(_password.text);
+  bool get _hasSpecial => RegExp(r'[^a-zA-Z0-9]').hasMatch(_password.text);
 
   @override
   void dispose() {
@@ -43,8 +41,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  String? _validateFullName(String? value) {
+    final text = value?.trim() ?? '';
+
+    if (text.isEmpty) {
+      return 'Введите имя и фамилию';
+    }
+
+    final words = text.split(RegExp(r'\s+'));
+
+    if (words.length < 2) {
+      return 'Введите имя и фамилию';
+    }
+
+    final wordPattern = RegExp(
+      r"^[A-Za-zА-Яа-яЁё]+(?:[-'][A-Za-zА-Яа-яЁё]+)*$",
+    );
+
+    if (!words.every((word) => wordPattern.hasMatch(word))) {
+      return 'Используйте буквы и дефис';
+    }
+
+    return null;
+  }
+
+  String? _validateUsername(String? value) {
+    final text = value?.trim() ?? '';
+
+    if (!RegExp(r'^[a-zA-Z0-9_.-]{3,32}$').hasMatch(text)) {
+      return 'От 3 до 32 символов: латиница, цифры, . _ -';
+    }
+
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    final text = value?.trim() ?? '';
+
+    if (!RegExp(
+      r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+    ).hasMatch(text)) {
+      return 'Введите корректный email';
+    }
+
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (!_longEnough || !_hasDigit || !_hasSpecial) {
+      return 'Пароль должен соответствовать требованиям ниже';
+    }
+
+    return null;
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
     setState(() {
       _busy = true;
@@ -53,11 +109,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await context.read<AuthNotifier>().register(
-        username: _username.text.trim(),
-        password: _password.text,
-        email: _email.text.trim(),
-        fullName: _fullName.text.trim(),
-      );
+            username: _username.text.trim(),
+            password: _password.text,
+            email: _email.text.trim(),
+            fullName: _fullName.text.trim(),
+          );
 
       if (!mounted) return;
 
@@ -72,28 +128,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     } on ApiException catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.message);
+
+      setState(() {
+        _error = error.message;
+      });
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error.toString());
+
+      setState(() {
+        _error = error.toString();
+      });
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        setState(() {
+          _busy = false;
+        });
       }
     }
   }
 
   Widget _passwordRule(String text, bool satisfied) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 7),
       child: Row(
         children: [
           Icon(
             satisfied ? Icons.check_circle : Icons.circle_outlined,
             color: satisfied ? Colors.green : Colors.grey,
-            size: 18,
+            size: 19,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 9),
           Text(text),
         ],
       ),
@@ -103,6 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     const darkText = Color(0xFF30232A);
+    const deepPink = Color(0xFF8F4A68);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF7FA),
@@ -128,72 +193,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const Text(
                         'Создать аккаунт',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 27,
                           fontWeight: FontWeight.bold,
                           color: darkText,
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 24),
 
                       TextFormField(
                         controller: _fullName,
                         decoration: const InputDecoration(
                           labelText: 'Имя и фамилия',
+                          hintText: 'Анна Иванова',
+                          prefixIcon: Icon(Icons.person_outline),
                         ),
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                                ? 'Введите имя'
-                                : null,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        validator: _validateFullName,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 15),
 
                       TextFormField(
                         controller: _username,
                         decoration: const InputDecoration(
                           labelText: 'Логин',
+                          hintText: 'anna_ivanova',
+                          prefixIcon: Icon(Icons.account_circle_outlined),
                         ),
-                        validator: (value) {
-                          final text = value?.trim() ?? '';
-
-                          if (!RegExp(
-                            r'^[a-zA-Z0-9_.-]{3,32}$',
-                          ).hasMatch(text)) {
-                            return 'От 3 до 32 символов: латиница, цифры, . _ -';
-                          }
-
-                          return null;
-                        },
+                        textInputAction: TextInputAction.next,
+                        validator: _validateUsername,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 15),
 
                       TextFormField(
                         controller: _email,
-                        keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: 'Электронная почта',
+                          hintText: 'anna@example.com',
+                          prefixIcon: Icon(Icons.email_outlined),
                         ),
-                        validator: (value) {
-                          final text = value?.trim() ?? '';
-
-                          if (!RegExp(
-                            r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
-                          ).hasMatch(text)) {
-                            return 'Введите корректный email';
-                          }
-
-                          return null;
-                        },
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        validator: _validateEmail,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 15),
 
+                      // 4. Пароль.
                       TextFormField(
                         controller: _password,
                         obscureText: _obscure,
                         decoration: InputDecoration(
                           labelText: 'Пароль',
+                          prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             onPressed: () {
-                              setState(() => _obscure = !_obscure);
+                              setState(() {
+                                _obscure = !_obscure;
+                              });
                             },
                             icon: Icon(
                               _obscure
@@ -202,15 +258,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                         ),
-                        onChanged: (_) => setState(() {}),
-                        validator: (_) {
-                          if (!_longEnough ||
-                              !_hasDigit ||
-                              !_hasSpecial) {
-                            return 'Пароль не соответствует требованиям';
-                          }
-                          return null;
+                        textInputAction: TextInputAction.next,
+                        onChanged: (_) {
+                          setState(() {});
                         },
+                        validator: _validatePassword,
                       ),
                       const SizedBox(height: 12),
 
@@ -226,51 +278,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Хотя бы один специальный символ',
                         _hasSpecial,
                       ),
-
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 13),
 
                       TextFormField(
                         controller: _repeatPassword,
                         obscureText: true,
                         decoration: const InputDecoration(
                           labelText: 'Повторите пароль',
+                          prefixIcon: Icon(Icons.lock_reset),
                         ),
-                        validator: (value) =>
-                            value != _password.text
-                                ? 'Пароли не совпадают'
-                                : null,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        validator: (value) {
+                          if (value != _password.text) {
+                            return 'Пароли не совпадают';
+                          }
+
+                          return null;
+                        },
                       ),
 
                       if (_error != null) ...[
                         const SizedBox(height: 16),
                         Text(
                           _error!,
-                          style: const TextStyle(color: Colors.red),
+                          style: const TextStyle(
+                            color: Colors.red,
+                          ),
                         ),
                       ],
 
                       const SizedBox(height: 22),
 
                       FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: deepPink,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                          ),
+                        ),
                         onPressed: _busy ? null : _submit,
                         child: _busy
-                            ? const CircularProgressIndicator()
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Text('Зарегистрироваться'),
                       ),
 
                       TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => context.go('/login'),
-                        child: const Text('Уже есть аккаунт? Войти'),
+                        onPressed: _busy ? null : () => context.go('/login'),
+                        child: const Text(
+                          'Уже есть аккаунт? Войти',
+                        ),
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+
                       const Text(
-                        'Новая учётная запись получает роль «Посетитель». '
-                        'Другую роль назначает администратор.',
+                        'Новый аккаунт получает роль «Посетитель». '
+                        'Роль сотрудника приюта или администратора '
+                        'назначается отдельно.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: darkText,
+                        ),
                       ),
                     ],
                   ),

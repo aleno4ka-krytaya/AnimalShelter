@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,12 +15,10 @@ class AdopterDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<AdopterDetailScreen> createState() =>
-      _AdopterDetailScreenState();
+  State<AdopterDetailScreen> createState() => _AdopterDetailScreenState();
 }
 
-class _AdopterDetailScreenState
-    extends State<AdopterDetailScreen> {
+class _AdopterDetailScreenState extends State<AdopterDetailScreen> {
   final fullName = TextEditingController();
   final city = TextEditingController();
   final phone = TextEditingController();
@@ -44,9 +41,7 @@ class _AdopterDetailScreenState
   }
 
   Future<void> _load() async {
-    final adopter = await context
-        .read<AdopterRepository>()
-        .findById(widget.id);
+    final adopter = await context.read<AdopterRepository>().findById(widget.id);
 
     if (adopter != null && mounted) {
       fullName.text = adopter.fullName;
@@ -72,9 +67,7 @@ class _AdopterDetailScreenState
   @override
   Widget build(BuildContext context) {
     return ShelterScaffold(
-      title: widget.id == 0
-          ? 'Новый хозяин'
-          : 'Карточка будущего хозяина',
+      title: widget.id == 0 ? 'Новый хозяин' : 'Карточка будущего хозяина',
       child: SingleChildScrollView(
         child: ConstrainedBox(
           constraints: const BoxConstraints(
@@ -90,7 +83,6 @@ class _AdopterDetailScreenState
                 ),
               ),
               const SizedBox(height: 12),
-
               TextField(
                 controller: city,
                 decoration: const InputDecoration(
@@ -98,7 +90,6 @@ class _AdopterDetailScreenState
                 ),
               ),
               const SizedBox(height: 12),
-
               TextField(
                 controller: phone,
                 decoration: const InputDecoration(
@@ -106,7 +97,6 @@ class _AdopterDetailScreenState
                 ),
               ),
               const SizedBox(height: 12),
-
               TextField(
                 controller: email,
                 decoration: const InputDecoration(
@@ -114,7 +104,6 @@ class _AdopterDetailScreenState
                 ),
               ),
               const SizedBox(height: 12),
-
               DropdownButtonFormField<String>(
                 initialValue: species,
                 decoration: const InputDecoration(
@@ -135,7 +124,6 @@ class _AdopterDetailScreenState
                 },
               ),
               const SizedBox(height: 20),
-
               FilledButton.icon(
                 onPressed: () async {
                   final adopter = Adopter(
@@ -149,9 +137,7 @@ class _AdopterDetailScreenState
                     preferredSpecies: species,
                   );
 
-                  await context
-                      .read<AdopterNotifier>()
-                      .save(adopter);
+                  await context.read<AdopterNotifier>().save(adopter);
 
                   if (context.mounted) {
                     Navigator.of(context).pop();

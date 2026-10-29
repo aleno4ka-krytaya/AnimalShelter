@@ -174,7 +174,6 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-
               Wrap(
                 spacing: 12,
                 runSpacing: 8,
@@ -264,9 +263,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                     ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
               if (notifier.status == LoadStatus.loading)
                 const Expanded(
                   child: Center(
@@ -294,8 +291,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      // На узком экране показываем карточки.
-                      if (constraints.maxWidth < 600) {
+                      if (constraints.maxWidth < 800) {
                         return ListView(
                           children: notifier.result.items
                               .map(
@@ -305,7 +301,6 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                         );
                       }
 
-                      // На широком экране показываем таблицу.
                       return SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: ConstrainedBox(
@@ -499,93 +494,126 @@ class _AnimalListScreenState extends State<AnimalListScreen> {
                     },
                   ),
                 ),
-
               const SizedBox(height: 10),
 
               // Управление пагинацией.
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Всего: ${notifier.result.total}',
-                  ),
-                  const SizedBox(width: 12),
-                  DropdownButton<int>(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 500;
+                  final totalPages =
+                      (notifier.result.total / notifier.query.size)
+                          .ceil()
+                          .clamp(1, 999999);
+                  final currentPage = notifier.query.page;
+
+                  Future<void> changePage(int page) async {
+                    final safePage = page.clamp(1, totalPages);
+                    await notifier.applyQuery(
+                      notifier.query.copyWith(page: safePage),
+                    );
+                  }
+
+                  Future<void> changePageSize(int size) async {
+                    await notifier.applyQuery(
+                      notifier.query.copyWith(page: 1, size: size),
+                    );
+                  }
+
+                  final pageSizeDropdown = DropdownButton<int>(
                     value: notifier.query.size,
-                    items: [5, 10, 25, 50]
-                        .map(
-                          (size) => DropdownMenuItem<int>(
-                            value: size,
-                            child: Text('$size / стр.'),
-                          ),
-                        )
-                        .toList(),
+                    underline: const SizedBox.shrink(),
+                    isDense: true,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 10,
+                        child: Text('10 / стр.'),
+                      ),
+                      DropdownMenuItem(
+                        value: 20,
+                        child: Text('20 / стр.'),
+                      ),
+                      DropdownMenuItem(
+                        value: 50,
+                        child: Text('50 / стр.'),
+                      ),
+                    ],
                     onChanged: (value) {
                       if (value != null) {
-                        update(
-                          notifier.query.copyWith(
-                            size: value,
-                            page: 1,
-                          ),
-                        );
+                        changePageSize(value);
                       }
                     },
-                  ),
-                  IconButton(
-                    tooltip: 'Первая страница',
-                    onPressed: notifier.query.page > 1
-                        ? () {
-                            update(
-                              notifier.query.copyWith(page: 1),
-                            );
-                          }
-                        : null,
-                    icon: const Icon(Icons.first_page),
-                  ),
-                  IconButton(
-                    tooltip: 'Предыдущая страница',
-                    onPressed: notifier.result.hasPrevious
-                        ? () {
-                            update(
-                              notifier.query.copyWith(
-                                page: notifier.query.page - 1,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  Text(
-                    '${notifier.result.page} / '
-                    '${notifier.result.totalPages}',
-                  ),
-                  IconButton(
-                    tooltip: 'Следующая страница',
-                    onPressed: notifier.result.hasNext
-                        ? () {
-                            update(
-                              notifier.query.copyWith(
-                                page: notifier.query.page + 1,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                  IconButton(
-                    tooltip: 'Последняя страница',
-                    onPressed: notifier.result.hasNext
-                        ? () {
-                            update(
-                              notifier.query.copyWith(
-                                page: notifier.result.totalPages,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: const Icon(Icons.last_page),
-                  ),
-                ],
+                  );
+
+                  final pageButtons = Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Первая страница',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: currentPage > 1 ? () => changePage(1) : null,
+                        icon: const Icon(Icons.first_page),
+                      ),
+                      IconButton(
+                        tooltip: 'Предыдущая страница',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: currentPage > 1
+                            ? () => changePage(currentPage - 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Text('$currentPage / $totalPages'),
+                      IconButton(
+                        tooltip: 'Следующая страница',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: currentPage < totalPages
+                            ? () => changePage(currentPage + 1)
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                      IconButton(
+                        tooltip: 'Последняя страница',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: currentPage < totalPages
+                            ? () => changePage(totalPages)
+                            : null,
+                        icon: const Icon(Icons.last_page),
+                      ),
+                    ],
+                  );
+
+                  if (isMobile) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            Text('Всего: ${notifier.result.total}'),
+                            pageSizeDropdown,
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.center,
+                          child: pageButtons,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text('Всего: ${notifier.result.total}'),
+                      const SizedBox(width: 8),
+                      pageSizeDropdown,
+                      const SizedBox(width: 8),
+                      pageButtons,
+                    ],
+                  );
+                },
               ),
             ],
           ),

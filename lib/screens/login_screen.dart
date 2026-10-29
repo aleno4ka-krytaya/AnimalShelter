@@ -45,9 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await context.read<AuthNotifier>().login(
-        username: _username.text.trim(),
-        password: _password.text,
-      );
+            username: _username.text.trim(),
+            password: _password.text,
+          );
 
       if (!mounted) return;
 
@@ -115,7 +115,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
                       if (widget.registered) ...[
                         const Text(
                           'Аккаунт создан. Теперь войдите в систему.',
@@ -124,7 +123,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
                       ],
-
                       TextFormField(
                         controller: _username,
                         decoration: const InputDecoration(
@@ -133,15 +131,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         textInputAction: TextInputAction.next,
                         validator: (value) {
-                          if (value == null ||
-                              value.trim().isEmpty) {
+                          if (value == null || value.trim().isEmpty) {
                             return 'Введите логин';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-
                       TextFormField(
                         controller: _password,
                         obscureText: _obscurePassword,
@@ -169,7 +165,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-
                       if (_error != null) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -177,9 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(color: Colors.red),
                         ),
                       ],
-
                       const SizedBox(height: 22),
-
                       FilledButton(
                         onPressed: _busy ? null : _submit,
                         child: _busy
@@ -192,16 +185,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                             : const Text('Войти'),
                       ),
-
                       TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => context.go('/register'),
+                        onPressed: _busy ? null : () => context.go('/register'),
                         child: const Text('Создать аккаунт'),
                       ),
-
                       const Divider(height: 30),
-
                       const Text(
                         'Тестовые аккаунты',
                         style: TextStyle(

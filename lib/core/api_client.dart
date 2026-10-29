@@ -12,9 +12,7 @@ Dio buildDio({
 }) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: apiBaseUrl.endsWith('/')
-          ? apiBaseUrl
-          : '$apiBaseUrl/',
+      baseUrl: apiBaseUrl.endsWith('/') ? apiBaseUrl : '$apiBaseUrl/',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
@@ -23,8 +21,7 @@ Dio buildDio({
       },
 
       // Ответы 4xx и 5xx должны обрабатываться через onError.
-      validateStatus: (status) =>
-          status != null && status < 400,
+      validateStatus: (status) => status != null && status < 400,
     ),
   );
 
@@ -35,8 +32,7 @@ Dio buildDio({
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        final token =
-            authSession?.accessToken ?? tokenProvider?.call();
+        final token = authSession?.accessToken ?? tokenProvider?.call();
 
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -50,7 +46,6 @@ Dio buildDio({
 
         handler.next(options);
       },
-
       onResponse: (response, handler) {
         if (kDebugMode) {
           debugPrint(
@@ -62,14 +57,12 @@ Dio buildDio({
 
         handler.next(response);
       },
-
       onError: (error, handler) async {
         final status = error.response?.statusCode;
         final path = error.requestOptions.path.toLowerCase();
 
         final isAuthEndpoint =
-            path.contains('/auth/') ||
-            path.startsWith('auth/');
+            path.contains('/auth/') || path.startsWith('auth/');
 
         final alreadyRetried =
             error.requestOptions.extra['authRetried'] == true;
@@ -89,8 +82,7 @@ Dio buildDio({
             !alreadyRetried &&
             authSession != null) {
           try {
-            final newToken =
-                await authSession.refreshAccessToken();
+            final newToken = await authSession.refreshAccessToken();
 
             if (newToken == null || newToken.isEmpty) {
               throw const UnauthorizedException(
@@ -120,12 +112,9 @@ Dio buildDio({
 }
 
 ApiException mapHttpError(int status, dynamic data) {
-  final payload = data is Map
-      ? data
-      : const <dynamic, dynamic>{};
+  final payload = data is Map ? data : const <dynamic, dynamic>{};
 
-  final message =
-      (payload['message'] ?? 'Ошибка HTTP $status').toString();
+  final message = (payload['message'] ?? 'Ошибка HTTP $status').toString();
 
   switch (status) {
     case 400:

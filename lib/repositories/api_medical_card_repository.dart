@@ -4,8 +4,7 @@ import '../core/api_client.dart';
 import '../models/medical_card.dart';
 import 'medical_card_repository.dart';
 
-class ApiMedicalCardRepository
-    implements MedicalCardRepository {
+class ApiMedicalCardRepository implements MedicalCardRepository {
   final Dio dio;
 
   ApiMedicalCardRepository(this.dio);

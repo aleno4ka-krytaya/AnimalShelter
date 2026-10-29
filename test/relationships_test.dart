@@ -12,8 +12,7 @@ void main() {
       late InMemoryAdoptionRequestRepository repository;
 
       setUp(() {
-        repository =
-            InMemoryAdoptionRequestRepository();
+        repository = InMemoryAdoptionRequestRepository();
       });
 
       test(
@@ -26,17 +25,13 @@ void main() {
 
           final requests = await repository.findAll();
 
-          final forFirstAnimal = requests
-              .where((item) => item.animalId == 1)
-              .toList();
+          final forFirstAnimal =
+              requests.where((item) => item.animalId == 1).toList();
 
           expect(forFirstAnimal.length, 3);
 
           expect(
-            forFirstAnimal
-                .map((item) => item.adopterId)
-                .toSet()
-                .length,
+            forFirstAnimal.map((item) => item.adopterId).toSet().length,
             3,
           );
         },
@@ -67,8 +62,7 @@ void main() {
             newRequest.copyWith(status: 'Одобрена'),
           );
 
-          final secondRequest =
-              await repository.create(
+          final secondRequest = await repository.create(
             animalId: 1,
             adopterId: 4,
           );

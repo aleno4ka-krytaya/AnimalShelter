@@ -11,8 +11,7 @@ class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
 
   @override
-  State<AdminUsersScreen> createState() =>
-      _AdminUsersScreenState();
+  State<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
@@ -109,7 +108,6 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             'Роли: посетитель, сотрудник приюта и администратор.',
           ),
           const SizedBox(height: 20),
-
           if (_loading)
             const Expanded(
               child: Center(
@@ -136,8 +134,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             Expanded(
               child: ListView.separated(
                 itemCount: _users.length,
-                separatorBuilder: (_, __) =>
-                    const Divider(height: 1),
+                separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final user = _users[index];
                   final isSelf = user.id == currentUser?.id;
