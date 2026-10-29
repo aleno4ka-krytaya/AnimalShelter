@@ -1,12 +1,16 @@
-
 name: Flutter CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -31,10 +35,11 @@ jobs:
       - name: Run tests
         run: flutter test
 
-       - name: Build web release
+      - name: Build web release
         run: |
           flutter build web --release --base-href /AnimalShelter/
           cp build/web/index.html build/web/404.html
+
       - name: Upload web build
         uses: actions/upload-pages-artifact@v3
         with:
@@ -42,13 +47,14 @@ jobs:
 
   deploy:
     needs: test
+    runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
