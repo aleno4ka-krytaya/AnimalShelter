@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthNotifier>();
     final bool canManageRequests = auth.has(UserRole.staff);
+    final bool isAdmin = auth.has(UserRole.admin);
+
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 500;
 
@@ -27,7 +30,9 @@ class HomeScreen extends StatelessWidget {
               padding: EdgeInsets.all(isMobile ? 20 : 28),
               decoration: BoxDecoration(
                 color: const Color(0xFFF6DCE7),
-                borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+                borderRadius: BorderRadius.circular(
+                  isMobile ? 20 : 24,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +74,8 @@ class HomeScreen extends StatelessWidget {
                   if (canManageRequests)
                     _HomeCard(
                       title: 'Будущие хозяева',
-                      description: 'Список потенциальных хозяев и их контакты.',
+                      description:
+                          'Список потенциальных хозяев и их контакты.',
                       icon: Icons.people_outline,
                       onTap: () => context.go('/adopters'),
                     ),
@@ -79,7 +85,17 @@ class HomeScreen extends StatelessWidget {
                       description:
                           'Создание заявки и выбор потенциального хозяина.',
                       icon: Icons.assignment_outlined,
-                      onTap: () => context.go('/adoption-requests/new'),
+                      onTap: () =>
+                          context.go('/adoption-requests/new'),
+                    ),
+                  if (isAdmin)
+                    _HomeCard(
+                      title: 'Пользователи',
+                      description:
+                          'Просмотр зарегистрированных пользователей '
+                          'и управление их ролями.',
+                      icon: Icons.manage_accounts_outlined,
+                      onTap: () => context.go('/admin/users'),
                     ),
                 ];
 
@@ -101,9 +117,11 @@ class HomeScreen extends StatelessWidget {
                   );
                 }
 
-                final spacing = 16.0;
+                const spacing = 16.0;
                 final cardWidth =
-                    (constraints.maxWidth - spacing * (columns - 1)) / columns;
+                    (constraints.maxWidth -
+                        spacing * (columns - 1)) /
+                    columns;
 
                 return Wrap(
                   spacing: spacing,

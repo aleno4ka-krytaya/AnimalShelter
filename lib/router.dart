@@ -14,14 +14,21 @@ import 'screens/medical_card_screen.dart';
 import 'screens/register_screen.dart';
 import 'state/auth_notifier.dart';
 
+import 'package:flutter/foundation.dart';
+
 GoRouter createRouter(AuthNotifier auth) {
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     refreshListenable: auth,
     redirect: (context, state) {
       final path = state.uri.path;
       final loggedIn = auth.isAuthenticated;
-
+      debugPrint(
+        '[ROUTER] path=$path, '
+        'loggedIn=$loggedIn, '
+        'role=${auth.user?.role.name}, '
+        'isAdmin=${auth.has(UserRole.admin)}',
+      );
       final isPublic = path == '/login' || path == '/register';
 
       if (!loggedIn && !isPublic) {

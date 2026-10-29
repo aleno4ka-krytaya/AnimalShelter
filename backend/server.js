@@ -998,14 +998,19 @@ app.use((error, req, res, next) => {
 
 seedData();
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(
-    `API «Лапки и дом»: http://localhost:${PORT}/api`,
-  );
 
-  console.log(`Разрешённый источник: ${ALLOWED_ORIGIN}`);
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`API запущен на порту ${PORT}`);
+    console.log(`Разрешённый источник: ${ALLOWED_ORIGIN}`);
+    console.log('Проверка сервера: /api/__health');
+    console.log('Тестовые роли: visitor, staff, admin');
+  });
+}
 
-  console.log('Проверка сервера: /api/__health');
-
-  console.log('Тестовые роли: visitor, staff, admin');
-});
+module.exports = {
+  app,
+  validateAnimal,
+  validateAdopter,
+  db,
+};

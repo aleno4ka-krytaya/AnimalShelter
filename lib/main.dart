@@ -1,10 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/api_client.dart';
 import 'core/auth_session.dart';
+import 'core/supabase_config.dart';
 
 import 'repositories/auth_api.dart';
 import 'repositories/animal_repository.dart';
@@ -12,10 +12,10 @@ import 'repositories/adopter_repository.dart';
 import 'repositories/adoption_request_repository.dart';
 import 'repositories/medical_card_repository.dart';
 
-import 'repositories/api_animal_repository.dart';
-import 'repositories/api_adopter_repository.dart';
-import 'repositories/api_adoption_request_repository.dart';
-import 'repositories/api_medical_card_repository.dart';
+import 'repositories/supabase_animal_repository.dart';
+import 'repositories/supabase_adopter_repository.dart';
+import 'repositories/supabase_adoption_request_repository.dart';
+import 'repositories/supabase_medical_card_repository.dart';
 
 import 'state/auth_notifier.dart';
 import 'state/animal_notifier.dart';
@@ -28,91 +28,57 @@ import 'widgets/inactivity_watcher.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await SupabaseConfig.initialize();
+
+  final supabase = Supabase.instance.client;
   final prefs = await SharedPreferences.getInstance();
 
-  // Общая сессия пользователя.
-  final session = AuthSession();
-
-  // Один Dio для авторизации и запросов к API.
-  final dio = buildDio(
-    authSession: session,
-  );
-
-  final authApi = AuthApi(dio);
+  // AuthApi использует Supabase Auth, а данные приложения
+  // загружаются через Supabase-репозитории.
+  final authSession = AuthSession();
+  final authApi = AuthApi(supabase);
 
   final auth = AuthNotifier(
     prefs: prefs,
     api: authApi,
-    session: session,
+    session: authSession,
   );
 
-  // Автоматическое обновление токена.
-  session.refreshHandler = auth.refreshTokens;
+  authSession.refreshHandler = auth.refreshTokens;
+  authSession.expiredHandler = () => auth.logout(notifyServer: false);
 
-  // Если обновить токен не удалось — завершаем сессию.
-  session.expiredHandler = () {
-    return auth.logout(notifyServer: false);
-  };
-
-  // Восстанавливаем сессию до построения интерфейса.
   await auth.restore();
 
-  // Создаём маршрутизатор с авторизацией.
   final router = createRouter(auth);
 
   runApp(
     MultiProvider(
       providers: [
-        Provider<Dio>.value(
-          value: dio,
+        Provider<SupabaseClient>.value(value: supabase),
+        Provider<AuthApi>.value(value: authApi),
+        ChangeNotifierProvider<AuthNotifier>.value(value: auth),
+        ProxyProvider<SupabaseClient, AnimalRepository>(
+          update: (_, client, __) => SupabaseAnimalRepository(client),
         ),
-
-        Provider<AuthApi>.value(
-          value: authApi,
+        ProxyProvider<SupabaseClient, AdopterRepository>(
+          update: (_, client, __) => SupabaseAdopterRepository(client),
         ),
-
-        ChangeNotifierProvider<AuthNotifier>.value(
-          value: auth,
+        ProxyProvider<SupabaseClient, AdoptionRequestRepository>(
+          update: (_, client, __) =>
+              SupabaseAdoptionRequestRepository(client),
         ),
-
-        // Репозитории работают через REST API.
-        ProxyProvider<Dio, AnimalRepository>(
-          update: (_, dio, __) {
-            return ApiAnimalRepository(dio);
-          },
+        ProxyProvider<SupabaseClient, MedicalCardRepository>(
+          update: (_, client, __) =>
+              SupabaseMedicalCardRepository(client),
         ),
-
-        ProxyProvider<Dio, AdopterRepository>(
-          update: (_, dio, __) {
-            return ApiAdopterRepository(dio);
-          },
-        ),
-
-        ProxyProvider<Dio, AdoptionRequestRepository>(
-          update: (_, dio, __) {
-            return ApiAdoptionRequestRepository(dio);
-          },
-        ),
-
-        ProxyProvider<Dio, MedicalCardRepository>(
-          update: (_, dio, __) {
-            return ApiMedicalCardRepository(dio);
-          },
-        ),
-
-        // Состояния приложения.
         ChangeNotifierProvider(
-          create: (context) => AnimalNotifier(
-            context.read<AnimalRepository>(),
-          ),
+          create: (context) =>
+              AnimalNotifier(context.read<AnimalRepository>()),
         ),
-
         ChangeNotifierProvider(
-          create: (context) => AdopterNotifier(
-            context.read<AdopterRepository>(),
-          ),
+          create: (context) =>
+              AdopterNotifier(context.read<AdopterRepository>()),
         ),
-
         ChangeNotifierProvider(
           create: (context) => AdoptionRequestNotifier(
             context.read<AdoptionRequestRepository>(),
@@ -147,7 +113,6 @@ class ShelterApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Лапки и дом',
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -183,11 +148,7 @@ class ShelterApp extends StatelessWidget {
           ),
         ),
       ),
-
-      // Именно этот маршрутизатор проверяет авторизацию.
       routerConfig: router,
-
-      // Сессия ограничена по времени и бездействию.
       builder: (context, child) {
         return Consumer<AuthNotifier>(
           builder: (context, currentAuth, _) {
@@ -195,9 +156,7 @@ class ShelterApp extends StatelessWidget {
               enabled: currentAuth.isAuthenticated,
               timeout: const Duration(minutes: 3),
               warningBefore: const Duration(seconds: 30),
-              onTimeout: () {
-                return currentAuth.logout();
-              },
+              onTimeout: () => currentAuth.logout(),
               child: child ?? const SizedBox.shrink(),
             );
           },

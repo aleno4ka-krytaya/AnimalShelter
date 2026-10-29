@@ -1,12 +1,12 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:animal_shelter/core/auth_session.dart';
+import 'package:animal_shelter/main.dart';
 import 'package:animal_shelter/repositories/auth_api.dart';
 import 'package:animal_shelter/router.dart';
-import 'package:animal_shelter/main.dart';
 import 'package:animal_shelter/state/auth_notifier.dart';
 
 void main() {
@@ -18,20 +18,21 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       final prefs = await SharedPreferences.getInstance();
-
       final session = AuthSession();
 
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: 'http://localhost:8080/api/',
+      final supabase = SupabaseClient(
+        'https://example.supabase.co',
+        'test-key',
+        authOptions: const AuthClientOptions(
+          autoRefreshToken: false,
         ),
       );
 
-      final api = AuthApi(dio);
+      final authApi = AuthApi(supabase);
 
       final auth = AuthNotifier(
         prefs: prefs,
-        api: api,
+        api: authApi,
         session: session,
       );
 
@@ -56,12 +57,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Вход в систему'),
-        findsOneWidget,
+        router.routeInformationProvider.value.uri.path,
+        '/login',
       );
 
-      dio.close(force: true);
       router.dispose();
+      auth.dispose();
     },
   );
 }

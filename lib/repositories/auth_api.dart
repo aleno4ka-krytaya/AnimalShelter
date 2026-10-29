@@ -1,30 +1,60 @@
-import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../core/api_client.dart';
+import '../core/api_exceptions.dart';
 import '../models/app_user.dart';
 
 class AuthApi {
-  final Dio dio;
+  final SupabaseClient client;
 
-  AuthApi(this.dio);
+  AuthApi(this.client);
+
+  Future<AppUser> _loadProfile(String userId) async {
+    final row =
+        await client.from('profiles').select().eq('id', userId).single();
+
+    final user = client.auth.currentUser;
+
+    return AppUser.fromJson({
+      ...Map<String, dynamic>.from(row),
+      'id': userId,
+      'email': row['email'] ?? user?.email ?? '',
+    });
+  }
+
+  AuthTokens _tokensFromSession(
+    Session session,
+    AppUser user,
+  ) {
+    return AuthTokens(
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken ?? '',
+      expiresIn: 3600,
+      user: user,
+    );
+  }
 
   Future<AuthTokens> login({
     required String username,
     required String password,
   }) async {
-    final response = await apiRequest(
-      () => dio.post<dynamic>(
-        'auth/login',
-        data: {
-          'username': username,
-          'password': password,
-        },
-      ),
+    // Поле username в старом интерфейсе теперь принимает email.
+    final response = await client.auth.signInWithPassword(
+      email: username.trim(),
+      password: password,
     );
 
-    return AuthTokens.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
-    );
+    final session = response.session;
+    final user = response.user;
+
+    if (session == null || user == null) {
+      throw const AuthException(
+        'Не удалось войти. Проверьте email и пароль.',
+      );
+    }
+
+    final profile = await _loadProfile(user.id);
+
+    return _tokensFromSession(session, profile);
   }
 
   Future<AppUser> register({
@@ -33,95 +63,90 @@ class AuthApi {
     required String email,
     required String fullName,
   }) async {
-    final response = await apiRequest(
-      () => dio.post<dynamic>(
-        'auth/register',
-        data: {
-          'username': username,
-          'password': password,
-          'email': email,
-          'fullName': fullName,
-        },
-      ),
+    final response = await client.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: {
+        'username': username.trim(),
+        'fullName': fullName.trim(),
+      },
     );
 
-    return AppUser.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
+    final user = response.user;
+
+    if (user == null) {
+      throw const AuthException(
+        'Не удалось создать пользователя.',
+      );
+    }
+
+    // При включённом подтверждении email сессия появится
+    // только после подтверждения адреса.
+    if (response.session != null) {
+      return _loadProfile(user.id);
+    }
+
+    return AppUser(
+      id: user.id,
+      username: username.trim(),
+      fullName: fullName.trim(),
+      email: email.trim(),
+      role: UserRole.visitor,
     );
   }
 
   Future<AppUser> me() async {
-    final response = await apiRequest(
-      () => dio.get<dynamic>('auth/me'),
-    );
+    final user = client.auth.currentUser;
 
-    return AppUser.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
-    );
-  }
-
-  Future<AuthTokens> refresh(String refreshToken) async {
-    final response = await apiRequest(
-      () => dio.post<dynamic>(
-        'auth/refresh',
-        data: {
-          'refreshToken': refreshToken,
-        },
-      ),
-    );
-
-    return AuthTokens.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
-    );
-  }
-
-  Future<void> logout(String refreshToken) async {
-    await apiRequest(
-      () => dio.post<dynamic>(
-        'auth/logout',
-        data: {
-          'refreshToken': refreshToken,
-        },
-      ),
-    );
-  }
-
-  Future<List<AppUser>> users() async {
-    final response = await apiRequest(
-      () => dio.get<dynamic>('auth/users'),
-    );
-
-    if (response.data is! List) {
-      throw const FormatException(
-        'Сервер вернул неверный список пользователей.',
+    if (user == null) {
+      throw const UnauthorizedException(
+        'Сессия завершена. Войдите снова.',
       );
     }
 
-    return (response.data as List)
-        .whereType<Map>()
+    return _loadProfile(user.id);
+  }
+
+  Future<AuthTokens> refresh(String refreshToken) async {
+    final response = await client.auth.refreshSession(refreshToken);
+    final session = response.session;
+    final user = response.user;
+
+    if (session == null || user == null) {
+      throw const UnauthorizedException(
+        'Не удалось обновить сессию. Войдите снова.',
+      );
+    }
+
+    final profile = await _loadProfile(user.id);
+
+    return _tokensFromSession(session, profile);
+  }
+
+  Future<void> logout(String refreshToken) async {
+    await client.auth.signOut();
+  }
+
+  Future<List<AppUser>> users() async {
+    final rows = await client.from('profiles').select().order('full_name');
+
+    return rows
         .map(
-          (item) => AppUser.fromJson(
-            Map<String, dynamic>.from(item),
+          (row) => AppUser.fromJson(
+            Map<String, dynamic>.from(row),
           ),
         )
         .toList();
   }
 
-  Future<AppUser> setRole(
-    int userId,
-    UserRole role,
-  ) async {
-    final response = await apiRequest(
-      () => dio.put<dynamic>(
-        'auth/users/$userId/role',
-        data: {
-          'role': role.name,
-        },
-      ),
-    );
+  Future<AppUser> setRole(String userId, UserRole role) async {
+    final row = await client
+        .from('profiles')
+        .update({'role': role.name})
+        .eq('id', userId)
+        .select()
+        .single();
 
-    return AppUser.fromJson(
-      Map<String, dynamic>.from(response.data as Map),
-    );
+    return AppUser.fromJson(Map<String, dynamic>.from(row));
   }
 }

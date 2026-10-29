@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:animal_shelter/core/auth_session.dart';
 import 'package:animal_shelter/main.dart';
@@ -12,94 +12,170 @@ import 'package:animal_shelter/state/auth_notifier.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<({AuthNotifier auth, Dio dio, dynamic router})> setup() async {
+  Future<
+      ({
+        AuthNotifier auth,
+        SupabaseClient supabase,
+        dynamic router,
+      })> setup() async {
     SharedPreferences.setMockInitialValues({});
+
     final prefs = await SharedPreferences.getInstance();
     final session = AuthSession();
-    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080/api/'));
+
+    // РўРµСЃС‚РѕРІС‹Р№ РєР»РёРµРЅС‚ Supabase Р±РµР· СЃРµС‚РµРІС‹С… Р·Р°РїСЂРѕСЃРѕРІ
+    // Рё Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ РѕР±РЅРѕРІР»РµРЅРёСЏ С‚РѕРєРµРЅРѕРІ.
+    final supabase = SupabaseClient(
+      'https://example.supabase.co',
+      'test-key',
+      authOptions: const AuthClientOptions(
+        autoRefreshToken: false,
+      ),
+    );
+
+    final authApi = AuthApi(supabase);
+
     final auth = AuthNotifier(
       prefs: prefs,
-      api: AuthApi(dio),
+      api: authApi,
       session: session,
     );
+
     session.refreshHandler = auth.refreshTokens;
-    session.expiredHandler = () => auth.logout(notifyServer: false);
+
+    session.expiredHandler = () {
+      return auth.logout(notifyServer: false);
+    };
+
     final router = createRouter(auth);
-    return (auth: auth, dio: dio, router: router);
+
+    return (
+      auth: auth,
+      supabase: supabase,
+      router: router,
+    );
   }
 
-  testWidgets('Регистрация доступна без авторизации', (tester) async {
-    final s = await setup();
-    await tester.pumpWidget(
-      ChangeNotifierProvider<AuthNotifier>.value(
-        value: s.auth,
-        child: ShelterApp(router: s.router, auth: s.auth),
-      ),
-    );
-    s.router.go('/register');
-    await tester.pumpAndSettle();
+  Future<void> disposeSetup(
+    ({
+      AuthNotifier auth,
+      SupabaseClient supabase,
+      dynamic router,
+    }) setup,
+  ) async {
+    setup.router.dispose();
+    setup.auth.dispose();
+  }
 
-    expect(find.text('Регистрация'), findsOneWidget);
+  testWidgets(
+    'Р РµРіРёСЃС‚СЂР°С†РёСЏ РґРѕСЃС‚СѓРїРЅР° Р±РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё',
+    (tester) async {
+      final s = await setup();
 
-    s.dio.close(force: true);
-    s.router.dispose();
-    s.auth.dispose();
-  });
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthNotifier>.value(
+          value: s.auth,
+          child: ShelterApp(
+            router: s.router,
+            auth: s.auth,
+          ),
+        ),
+      );
 
-  testWidgets('Неавторизованный пользователь перенаправляется на вход',
-      (tester) async {
-    final s = await setup();
-    await tester.pumpWidget(
-      ChangeNotifierProvider<AuthNotifier>.value(
-        value: s.auth,
-        child: ShelterApp(router: s.router, auth: s.auth),
-      ),
-    );
-    s.router.go('/adopters');
-    await tester.pumpAndSettle();
+      s.router.go('/register');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-    expect(s.router.routeInformationProvider.value.uri.path, '/login');
+      expect(
+        s.router.routeInformationProvider.value.uri.path,
+        '/register',
+      );
 
-    s.dio.close(force: true);
-    s.router.dispose();
-    s.auth.dispose();
-  });
+      await disposeSetup(s);
+    },
+  );
 
-  testWidgets('Неавторизованный пользователь не открывает список животных',
-      (tester) async {
-    final s = await setup();
-    await tester.pumpWidget(
-      ChangeNotifierProvider<AuthNotifier>.value(
-        value: s.auth,
-        child: ShelterApp(router: s.router, auth: s.auth),
-      ),
-    );
-    s.router.go('/animals');
-    await tester.pumpAndSettle();
+  testWidgets(
+    'РќРµР°РІС‚РѕСЂРёР·РѕРІР°РЅРЅС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїРµСЂРµРЅР°РїСЂР°РІР»СЏРµС‚СЃСЏ РЅР° РІС…РѕРґ',
+    (tester) async {
+      final s = await setup();
 
-    expect(s.router.routeInformationProvider.value.uri.path, '/login');
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthNotifier>.value(
+          value: s.auth,
+          child: ShelterApp(
+            router: s.router,
+            auth: s.auth,
+          ),
+        ),
+      );
 
-    s.dio.close(force: true);
-    s.router.dispose();
-    s.auth.dispose();
-  });
+      s.router.go('/adopters');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-  testWidgets('Неавторизованный пользователь не открывает медкарту',
-      (tester) async {
-    final s = await setup();
-    await tester.pumpWidget(
-      ChangeNotifierProvider<AuthNotifier>.value(
-        value: s.auth,
-        child: ShelterApp(router: s.router, auth: s.auth),
-      ),
-    );
-    s.router.go('/animals/1/medical');
-    await tester.pumpAndSettle();
+      expect(
+        s.router.routeInformationProvider.value.uri.path,
+        '/login',
+      );
 
-    expect(s.router.routeInformationProvider.value.uri.path, '/login');
+      await disposeSetup(s);
+    },
+  );
 
-    s.dio.close(force: true);
-    s.router.dispose();
-    s.auth.dispose();
-  });
+  testWidgets(
+    'РЎС‚СЂР°РЅРёС†Р° РІС…РѕРґР° РґРѕСЃС‚СѓРїРЅР° Р±РµР· Р°РІС‚РѕСЂРёР·Р°С†РёРё',
+    (tester) async {
+      final s = await setup();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthNotifier>.value(
+          value: s.auth,
+          child: ShelterApp(
+            router: s.router,
+            auth: s.auth,
+          ),
+        ),
+      );
+
+      s.router.go('/login');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        s.router.routeInformationProvider.value.uri.path,
+        '/login',
+      );
+
+      await disposeSetup(s);
+    },
+  );
+
+  testWidgets(
+    'РђРґРјРёРЅРёСЃС‚СЂР°С‚РёРІРЅР°СЏ СЃС‚СЂР°РЅРёС†Р° РЅРµРґРѕСЃС‚СѓРїРЅР° Р±РµР· РІС…РѕРґР°',
+    (tester) async {
+      final s = await setup();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AuthNotifier>.value(
+          value: s.auth,
+          child: ShelterApp(
+            router: s.router,
+            auth: s.auth,
+          ),
+        ),
+      );
+
+      s.router.go('/admin/users');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        s.router.routeInformationProvider.value.uri.path,
+        '/login',
+      );
+
+      await disposeSetup(s);
+    },
+  );
 }

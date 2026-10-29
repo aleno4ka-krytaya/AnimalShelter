@@ -32,13 +32,12 @@ enum UserRole {
     }
   }
 
-  bool hasAtLeast(UserRole minimum) {
-    return level >= minimum.level;
-  }
+  bool hasAtLeast(UserRole minimum) => level >= minimum.level;
 }
 
 class AppUser {
-  final int id;
+  // Supabase Auth использует UUID, поэтому ID хранится как String.
+  final String id;
   final String username;
   final String fullName;
   final String email;
@@ -54,9 +53,9 @@ class AppUser {
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: (json['id'] ?? '').toString(),
       username: (json['username'] ?? '').toString(),
-      fullName: (json['fullName'] ?? '').toString(),
+      fullName: (json['full_name'] ?? json['fullName'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
       role: UserRole.fromValue(json['role']),
     );
@@ -66,7 +65,7 @@ class AppUser {
     return {
       'id': id,
       'username': username,
-      'fullName': fullName,
+      'full_name': fullName,
       'email': email,
       'role': role.name,
     };
@@ -90,7 +89,7 @@ class AuthTokens {
     return AuthTokens(
       accessToken: (json['accessToken'] ?? '').toString(),
       refreshToken: (json['refreshToken'] ?? '').toString(),
-      expiresIn: (json['expiresIn'] as num?)?.toInt() ?? 900,
+      expiresIn: (json['expiresIn'] as num?)?.toInt() ?? 3600,
       user: AppUser.fromJson(
         Map<String, dynamic>.from(json['user'] as Map),
       ),
